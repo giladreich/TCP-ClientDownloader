@@ -21,6 +21,7 @@ namespace TCP.ClientDownloader
         private int _iTo;
         private string _extension;
         private string _dstPath;
+        private bool _stopParsing;
 
         private Queue<Uri> _downloadUrls;
         private CancellationTokenSource _tokenSource;
@@ -41,6 +42,7 @@ namespace TCP.ClientDownloader
         {
             if (!ValidateFields()) return;
 
+            _stopParsing = false;
             _dstPath = Path.Combine(_dstPath, "Download_Result");
             Directory.CreateDirectory(_dstPath);
 
@@ -71,7 +73,8 @@ namespace TCP.ClientDownloader
                 return false;
             }
 
-            if ((!int.TryParse(tbxFrom.Text, out _iFrom) || !int.TryParse(tbxTo.Text, out _iTo)) && _iFrom > _iTo)
+            bool isParseFailed = !int.TryParse(tbxFrom.Text, out _iFrom) || !int.TryParse(tbxTo.Text, out _iTo);
+            if (isParseFailed && _iFrom >= _iTo)
             {
                 MessageBox.Show("Invalid input in TextBox \"From\" OR \"To\".", "Invalid Input");
                 return false;
@@ -125,7 +128,8 @@ namespace TCP.ClientDownloader
 
                 try
                 {
-                    if (_tokenSource.IsCancellationRequested) client.CancelAsync();
+                    if (_stopParsing) return;
+
                     await client.DownloadFileTaskAsync(uri, filePath);
                 }
                 catch (WebException ex)
@@ -189,6 +193,7 @@ namespace TCP.ClientDownloader
         private void btnStop_Click(object sender, EventArgs e)
         {
             _tokenSource.Cancel();
+            _stopParsing = true;
         }
 
         private void btnDstPicker_Click(object sender, EventArgs e)
